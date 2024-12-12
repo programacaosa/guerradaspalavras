@@ -12,8 +12,8 @@ let players = [];
 let currentTurn = 1; // 1 para Jogador 1, 2 para Jogador 2
 let lettersChosen = []; // Para armazenar as letras escolhidas
 
-// Servir os arquivos estáticos (como o index.html)
-app.use(express.static('public'));
+// Servir os arquivos estáticos da raiz do projeto
+app.use(express.static(__dirname)); // Serve os arquivos da raiz
 
 // Quando um jogador se conecta
 io.on('connection', (socket) => {
