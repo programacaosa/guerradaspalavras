@@ -1,0 +1,4 @@
+Batalha de Palavras (Aventura Erótica)
+Descrição: Um jogo de palavras onde os jogadores têm que criar palavras ou frases a partir de letras ou pistas dadas. Cada palavra ou frase criada pode desbloquear pequenas histórias eróticas ou interações entre os jogadores, dependendo da criatividade e das escolhas feitas.
+Recursos principais: Criação de palavras, narrativa interativa, escolhas com consequências, comunicação via chat.
+Tecnologia: WebSockets para troca de palavras e sincronização da narrativa.

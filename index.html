@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Batalha de Palavras - Aventura Erótica</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f4f4f4;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+    }
+
+    #game-container {
+      background-color: white;
+      border-radius: 8px;
+      padding: 20px;
+      width: 80%;
+      max-width: 600px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+
+    h1 {
+      text-align: center;
+      color: #333;
+    }
+
+    #chat-container {
+      margin-top: 20px;
+    }
+
+    #chat {
+      height: 200px;
+      overflow-y: auto;
+      border: 1px solid #ccc;
+      padding: 10px;
+      background-color: #f9f9f9;
+      margin-bottom: 10px;
+    }
+
+    #message-input {
+      width: 70%;
+      padding: 8px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
+
+    #send-button {
+      padding: 8px 12px;
+      margin-left: 10px;
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+
+    #send-button:hover {
+      background-color: #45a049;
+    }
+
+    #game-info {
+      margin-top: 20px;
+    }
+
+    #letters {
+      font-weight: bold;
+      color: #4CAF50;
+    }
+
+    #story {
+      margin-top: 10px;
+      font-style: italic;
+      color: #333;
+    }
+  </style>
+</head>
+<body>
+  <div id="game-container">
+    <h1>Batalha de Palavras - Aventura Erótica</h1>
+    
+    <div id="chat-container">
+      <div id="chat">
+        <!-- Mensagens do jogo aparecerão aqui -->
+      </div>
+      <input type="text" id="message-input" placeholder="Crie sua história com essas letras ..." />
+      <button id="send-button">Enviar</button>
+    </div>
+
+    <div id="game-info">
+      <h3>Escolha as letras e envie para que seu opontente crie uma história erótica com essas letras:</h3>
+      <p id="letters">A, E, R, T, B, D, C, U, I, Z, Y, N.</p> <!-- As letras podem ser geradas aleatoriamente -->
+      <div id="story">
+        <p id="current-story">Escolha as letras para começar...</p>
+      </div>
+    </div>
+  </div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    const socket = io(); // Conecta ao servidor WebSocket
+
+    const messageInput = document.getElementById('message-input');
+    const sendButton = document.getElementById('send-button');
+    const chatContainer = document.getElementById('chat');
+    const currentStory = document.getElementById('current-story');
+
+    sendButton.addEventListener('click', () => {
+      const message = messageInput.value.trim();
+      if (message) {
+        socket.emit('sendWord', message); // Envia a palavra ou frase para o servidor
+        messageInput.value = ''; // Limpa o campo de entrada
+      }
+    });
+
+    // Recebe mensagens do servidor (palavras ou partes da história)
+    socket.on('receiveMessage', (message) => {
+      const p = document.createElement('p');
+      p.textContent = message;
+      chatContainer.appendChild(p);
+    });
+
+    // Atualiza a história baseada na entrada do jogador
+    socket.on('updateStory', (story) => {
+      currentStory.textContent = story;
+    });
+  </script>
+</body>
+</html>
