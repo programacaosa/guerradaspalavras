@@ -9,44 +9,43 @@ const io = socketIo(server);
 
 // Lista de jogadores
 let players = [];
-let currentTurn = 1; // 1 para Jogador 1, 2 para Jogador 2
-let lettersChosen = []; // Para armazenar as letras escolhidas
+let rolling = false;
+let currentRoll = 1;
 
-// Servir os arquivos estáticos da raiz do projeto
-app.use(express.static(__dirname)); // Serve os arquivos da raiz
+// Servir os arquivos estáticos (como o index.html)
+app.use(express.static(__dirname));  // Serve arquivos da raiz
 
 // Quando um jogador se conecta
 io.on('connection', (socket) => {
   console.log('Novo jogador conectado');
-
+  
   // Adiciona o jogador à lista
   players.push(socket);
 
-  // Envia a vez atual para o jogador
-  socket.emit('updateTurn', currentTurn);
+  // Quando o jogador envia uma rolagem
+  socket.on('rollDice', () => {
+    if (!rolling) {
+      rolling = true;
 
-  // Envia as letras disponíveis
-  socket.emit('updateLetters', ['A', 'E', 'R', 'T', 'B', 'D', 'C', 'U', 'I', 'Z', 'Y', 'N']);
+      // Simula a rotação do dado
+      let roll = Math.floor(Math.random() * 6) + 1; // Valor aleatório entre 1 e 6
+      currentRoll = roll;
 
-  // Quando o jogador envia uma escolha de letra
-  socket.on('chooseLetter', (letter) => {
-    if (currentTurn === players.indexOf(socket) + 1) {
-      // Salva a letra escolhida
-      lettersChosen.push(letter);
-      // Alterna para o outro jogador
-      currentTurn = currentTurn === 1 ? 2 : 1;
+      // Enviar aos jogadores que o dado foi rolado
+      io.emit('diceRolled');
 
-      // Envia a vez do jogador para todos
-      io.emit('updateTurn', currentTurn);
-      io.emit('updateLetters', lettersChosen); // Atualiza as letras escolhidas
+      // Sincronizar a rotação do dado
+      setTimeout(() => {
+        io.emit('stopRolling', roll); // Enviar que o dado parou e mostrar o número final
+        rolling = false;
+      }, 1500); // A rotação dura 1.5 segundos
     }
   });
 
-  // Quando o jogador envia uma mensagem
-  socket.on('sendWord', (word) => {
-    if (currentTurn === players.indexOf(socket) + 1) {
-      io.emit('receiveMessage', word); // Envia a mensagem para todos
-    }
+  // Quando o jogador envia a rotação
+  socket.on('updateRotation', (rotationData) => {
+    // Envia a rotação para todos os outros jogadores
+    socket.broadcast.emit('updateRotation', rotationData);
   });
 
   // Quando o jogador desconecta
