@@ -81,12 +81,11 @@
       background-color: blue;
     }
 	.player img {
-  width: 200%;
-  height: 200%;
-  object-fit: contain;
-  border-radius: 150%; /* Opcional: para manter o formato circular */
-}
-
+      width: 200%;
+      height: 200%;
+      object-fit: contain;
+      border-radius: 150%; /* Opcional: para manter o formato circular */
+    }
   </style>
 </head>
 <body>
@@ -97,18 +96,17 @@
 
   <!-- Tabuleiro de corrida -->
   <div id="board">
-  <div class="track">
-    <div class="player" id="player1">
-      <img src="ela.png" alt="Player 1" />
+    <div class="track">
+      <div class="player" id="player1">
+        <img src="ela.png" alt="Player 1" />
+      </div>
+    </div>
+    <div class="track">
+      <div class="player player2" id="player2">
+        <img src="ele.png" alt="Player 2" />
+      </div>
     </div>
   </div>
-  <div class="track">
-    <div class="player player2" id="player2">
-      <img src="ele.png" alt="Player 2" />
-    </div>
-  </div>
-</div>
-
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.5.4/socket.io.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -120,71 +118,63 @@
     let rollButton = document.getElementById('rollButton');
     let scene, camera, renderer, die, rolling = false;
     let rollValue = 1; // Valor do dado
-    let currentRotation = { x: 0, y: 0 }; // Rotações do dado
-
-    // Variáveis do tabuleiro
     const player1 = document.getElementById('player1');
     const player2 = document.getElementById('player2');
     const trackWidth = document.getElementById('board').offsetWidth;
     let playerPositions = { player1: 0, player2: 0 };
 
-    // Texturas para as faces do dado (números de 1 a 6)
-    let textures = [];
-    let loader = new THREE.TextureLoader();
+    // Posições de ciladas no tabuleiro
+    const traps = [5, 10, 15, 20]; // Ajuste os números conforme necessário
 
-    // Carregar as texturas das faces do dado
-    function loadTextures() {
-      for (let i = 1; i <= 6; i++) {
-        textures.push(loader.load(`textures/${i}.png`, function(texture) {
-          console.log(`Textura ${i} carregada`);
-        }));
+    // Função para verificar se o jogador caiu em uma cilada
+    function checkForTrap(player, position) {
+      if (traps.includes(position)) {
+        // Exemplo de desafio: exibir uma mensagem
+        alert(`Cuidado! ${player} caiu em uma cilada! Complete o desafio para continuar.`);
+        
+        // Adicione aqui o código para o desafio
+        const challenge = prompt("Resolva: Qual é o resultado de 5 + 3?");
+        if (challenge == 8) {
+          alert("Desafio completado! Você pode continuar.");
+        } else {
+          alert("Resposta errada! Você ficará parado nesta rodada.");
+          playerPositions[player] -= rollValue;
+        }
       }
     }
 
     // Função para inicializar a cena WebGL com Three.js
     function init() {
       scene = new THREE.Scene();
-
       camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.5, 1000);
       camera.position.z = 5;
 
-      // Criando o renderer e configurando o fundo transparente
       renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true }); // alpha: true para fundo transparente
       renderer.setSize(window.innerWidth, window.innerHeight);
       document.body.appendChild(renderer.domElement);
 
-      // Configurar o fundo do canvas para transparente
       renderer.setClearColor(0x000000, 0); // O fundo é transparente (0 opacidade)
 
-      // Criando o dado (um cubo 3D)
       const geometry = new THREE.BoxGeometry(1, 1, 1);
+      const loader = new THREE.TextureLoader();
+      const materials = Array.from({ length: 6 }, (_, i) => new THREE.MeshBasicMaterial({ map: loader.load(`textures/${i + 1}.png`) }));
 
-      // Verificar se as texturas foram carregadas com sucesso
-      if (textures.length === 6) {
-        const materials = textures.map(texture => new THREE.MeshBasicMaterial({ map: texture }));
-        die = new THREE.Mesh(geometry, materials);
-        scene.add(die);
-      } else {
-        console.error('As texturas não foram carregadas corretamente!');
-      }
+      die = new THREE.Mesh(geometry, materials);
+      scene.add(die);
 
-      // Animação do dado
       animate();
 
-      // Quando o botão "Rolar Dado" for pressionado
       rollButton.addEventListener('click', () => {
         if (!rolling) {
           rolling = true;
-          socket.emit('rollDice'); // Enviar ao servidor que o dado foi rolado
+          socket.emit('rollDice');
         }
       });
     }
 
-    // Função para animação do dado
     function animate() {
       requestAnimationFrame(animate);
 
-      // Atualizar a rotação e enviar ao servidor se o dado estiver rolando
       if (rolling) {
         die.rotation.x += 0.1;
         die.rotation.y += 0.1;
@@ -197,55 +187,36 @@
       renderer.render(scene, camera);
     }
 
-    // Quando o dado for rolado, o servidor envia a face do dado
     socket.on('diceRolled', () => {
       rolling = true;
     });
 
-    // Função para parar a rotação do dado e exibir o número
     socket.on('stopRolling', (roll) => {
       rolling = false;
       rollValue = roll;
 
-      // Ajustar a rotação do dado para exibir o número correto
-      let angle = Math.random() * Math.PI * 2;
-      let x = Math.random() * Math.PI * 2;
-      let y = Math.random() * Math.PI * 2;
+      const activePlayer = playerPositions.player1 <= playerPositions.player2 ? 'player1' : 'player2';
+      playerPositions[activePlayer] += rollValue;
 
-      die.rotation.set(x, y, angle);
+      checkForTrap(activePlayer, playerPositions[activePlayer]);
 
-      // Atualizar posição do jogador
-      updatePlayerPosition(roll);
+      const newPosition = (playerPositions[activePlayer] / 30) * trackWidth;
+      document.getElementById(activePlayer).style.transform = `translateX(${newPosition}px)`;
 
-      // Exibir o valor final do dado
       alert(`O dado parou em: ${roll}`);
     });
 
-    // Atualizar a rotação do dado em todos os jogadores
     socket.on('updateRotation', (rotationData) => {
       die.rotation.x = rotationData.x;
       die.rotation.y = rotationData.y;
     });
 
-    // Ajustar a cena quando a janela for redimensionada
     window.addEventListener('resize', () => {
       renderer.setSize(window.innerWidth, window.innerHeight);
       camera.aspect = window.innerWidth / window.innerHeight;
       camera.updateProjectionMatrix();
     });
 
-    // Atualizar posição do jogador no tabuleiro
-    function updatePlayerPosition(steps) {
-      const activePlayer = playerPositions.player1 <= playerPositions.player2 ? 'player1' : 'player2';
-      playerPositions[activePlayer] += steps;
-
-      const newPosition = (playerPositions[activePlayer] / 30) * trackWidth; // Exemplo de lógica
-
-      document.getElementById(activePlayer).style.transform = `translateX(${newPosition}px)`;
-    }
-
-    // Inicializar o jogo
-    loadTextures();
     init();
   </script>
 </body>
